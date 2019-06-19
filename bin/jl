@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+
+const program = require('commander')
+const Printer = require('@darkobits/lolcatjs') // 打印ascii
+const shelljs = require('shelljs') // 创建本地项目
+const chalk = require('chalk') // 颜色
+const inquirer = require('inquirer') // 交互
+const ora = require('ora') // loading
+const downloadGithub = require('download-git-repo') // 专门下载git项目库
+const userhome = require('user-home') // 获取用户目录
+
+const template = 'direct:git@github.com:jianglinhub/p5-snake.git'
+const banner = [
+  '                   ___ ',
+  '       ___        /  /\\',
+  '      /__/\\      /  /:/',
+  '      \\__\\:\\    /  /:/ ',
+  '  ___ /  /::\\  /  /:/  ',
+  ' /__/\\  /:/\\/ /__/:/   ',
+  ' \\  \\:\\/:/~~  \\  \\:\\   ',
+  '  \\  \\::/      \\  \\:\\  ',
+  '   \\__\\/        \\  \\:\\ ',
+  '                 \\  \\:\\',
+  '                  \\__\\/',
+  '',
+  'JL 脚手架'
+].join('\n')
+
+program.version(Printer.default.fromString(banner), '-V, --version')
+
+const binHandler = {
+  init() {
+    inquirer
+      .prompt([
+        {
+          type: 'text',
+          message: '请输入文件夹名称',
+          name: 'dirname'
+        },
+        {
+          type: 'list',
+          message: '请选择对应的语言',
+          choices: ['TypeScript', 'EcmaScript'],
+          name: 'kind'
+        }
+      ])
+      .then(answers => {
+        const dirname = answers.dirname
+        if (dirname) {
+          const spinner = ora('downloading template')
+          spinner.start()
+          const _projectPath = `${userhome}/Desktop/${dirname}`
+          shelljs.cd(`${userhome}/Desktop/`)
+          shelljs.rm('-rf', _projectPath)
+          shelljs.mkdir(dirname)
+          downloadGithub(template, _projectPath, { clone: true }, err => {
+            spinner.stop()
+            if (err) {
+              console.error('download error:', err.message.trim())
+            } else {
+              // 替换模版数据为当前用户输入的数据
+              // shelljs.sed('-i', 'snake', dirname, _projectPath + '/packaje.json')
+              console.log(chalk.green('create success！'))
+            }
+          })
+        }
+      })
+  }
+}
+
+program
+  .usage('[cmd] <options>')
+  .arguments('<cmd> [env]')
+  .action((cmd, otherParams) => {
+    const handler = binHandler[cmd]
+    if (typeof handler === 'undefined') {
+      console.log(`${chalk.red('sorry: ')} 【${cmd}】option dit not found`)
+      process.exit(1)
+    } else {
+      handler(otherParams)
+    }
+  })
+
+program.parse(process.argv)
